@@ -1,6 +1,8 @@
 const { Strategy: GoogleStrategy } = require("passport-google-oauth20");
+const LocalStrategy = require("passport-local").Strategy;
 const passport = require("passport");
 const User = require("./models/User");
+const bcrypt = require("bcryptjs");
 
 exports.connectPassport = () => {
   passport.use(
@@ -29,6 +31,34 @@ exports.connectPassport = () => {
         } catch (error) {
           return done(error);
         }
+      }
+    )
+  );
+
+  passport.use(
+    new LocalStrategy(
+      {
+        usernameField: "email", // use email as username
+      },
+      function (email, password, done) {
+        User.findOne({ email: email }, function (err, user) {
+          if (err) {
+            return done(err);
+          }
+          if (!user) {
+            return done(null, false, { message: "Incorrect email." });
+          }
+          console.log(user);
+          bcrypt.compare(password, user.password, function (err, isMatch) {
+            if (err) {
+              return done(err);
+            }
+            if (!isMatch) {
+              return done(null, false, { message: "Incorrect password." });
+            }
+            return done(null, user);
+          });
+        });
       }
     )
   );
